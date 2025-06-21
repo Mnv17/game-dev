@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Concept Rain Game</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f0f8ff;
+        overflow: hidden;
+      }
+
+      #canvas {
+        background-color: #d0f0ff;
+        width: 900px;
+        height: 500px;
+        border: none;
+        display: block;
+        margin: auto;
+        position: relative;
+        overflow-y: auto;
+      }
+
+      .info-bar {
+        width: 900px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 20px;
+        color: #333;
+        font-size: 16px;
+      }
+
+      .option-frame {
+        background-color: #f0f8ff;
+        width: 900px;
+        margin: 10px auto;
+        text-align: center;
+      }
+
+      .option-frame h3 {
+        margin: 0;
+      }
+
+      .btn-group {
+        margin-top: 10px;
+      }
+
+      .btn-group button {
+        margin: 5px;
+        padding: 10px 20px;
+        background-color: #8888ff;
+        color: white;
+        font-weight: bold;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="canvas"></div>
+    <div class="info-bar">
+      <div id="score">Score: 0</div>
+      <div id="level">Level: 1</div>
+      <div id="lives">Lives: ❤️ x 5</div>
+    </div>
+    <div class="option-frame">
+      <h3>Select the category that matches the falling term:</h3>
+      <div class="btn-group" id="category-buttons"></div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const scoreEl = document.getElementById("score");
+      const levelEl = document.getElementById("level");
+      const livesEl = document.getElementById("lives");
+      const buttonsContainer = document.getElementById("category-buttons");
+
+      let score = 0;
+      let level = 1;
+      let lives = 5;
+      let fallingSpeed = 1.5;
+      let spawnRate = 3000;
+      let itemsSpawned = 0;
+      let wordQueue = [];
+      let currentItem = null;
+      let intervalId = null;
+      let spawnTimeoutId = null;
+      let maxLevel = 5;
+      let learnedConcepts = [];
+
+      const answers = {
+        "Whole number type": ["int", "Data Types"],
+        "Decimal number type": ["float", "Data Types"],
+        "Text type": ["str", "Data Types"],
+        "True/False type": ["bool", "Data Types"],
+        "Collection type": ["list", "Data Types"],
+        "Output function": ["print()", "Functions"],
+        "Input function": ["input()", "Functions"],
+        "Length function": ["len()", "Functions"],
+        "Number sequence": ["range()", "Functions"],
+        "Type check": ["type()", "Functions"],
+        "Conditional": ["if", "Control Flow"],
+        "Loop through items": ["for", "Control Flow"],
+        "Loop while true": ["while", "Control Flow"],
+        "Define function": ["def", "Control Flow"],
+        "Addition": ["+", "Operators"],
+        "Subtraction": ["-", "Operators"],
+        "Multiplication": ["*", "Operators"],
+        "Division": ["/", "Operators"],
+        "Equality": ["==", "Operators"],
+        "Inequality": ["!=", "Operators"],
+        "Logical AND": ["and", "Operators"],
+        "Logical OR": ["or", "Operators"],
+        "Logical NOT": ["not", "Operators"],
+        "Modulo": ["%", "Operators"],
+        "Exponentiation": ["**", "Operators"],
+        "String concatenation": ["+", "Operators"],
+        "Membership test": ["in", "Control Flow"],
+        "Exception handling": ["try/except", "Control Flow"],
+        "Dictionary type": ["dict", "Data Types"],
+        "Set type": ["set", "Data Types"]
+      };
+
+      function startGame() {
+        spawnWord();
+        intervalId = setInterval(gameLoop, 30);
+      }
+
+      function spawnWord() {
+        if (itemsSpawned >= level * 5) return;
+        const keys = Object.keys(answers);
+        const question = keys[Math.floor(Math.random() * keys.length)];
+        wordQueue.push(question);
+        if (!currentItem && wordQueue.length)
+          createFallingItem(wordQueue.shift());
+        itemsSpawned++;
+        spawnTimeoutId = setTimeout(spawnWord, spawnRate);
+      }
+
+      function createFallingItem(text) {
+        const item = document.createElement("div");
+        item.textContent = text;
+        item.style.position = "absolute";
+        item.style.left = Math.random() * 720 + "px";
+        item.style.top = "0px";
+        item.style.padding = "10px";
+        item.style.background = ["#ff9999", "#99ccff", "#ccffcc"][Math.floor(Math.random() * 3)];
+        item.style.border = "2px solid black";
+        item.style.fontWeight = "bold";
+        item.style.textAlign = "center";
+        item.style.width = "160px";
+        canvas.appendChild(item);
+
+        currentItem = {
+          element: item,
+          question: text,
+          answer: answers[text][0],
+          category: answers[text][1],
+          y: 0,
+        };
+
+        showOptions(currentItem.category);
+        learnedConcepts.push([currentItem.answer, currentItem.category]);
+      }
+
+      function showOptions(correctCategory) {
+        buttonsContainer.innerHTML = "";
+        let categories = [...new Set(Object.values(answers).map(([, cat]) => cat))];
+        let wrong = categories.filter((c) => c !== correctCategory);
+        let options = wrong.sort(() => 0.5 - Math.random()).slice(0, 3);
+        options.push(correctCategory);
+        options.sort(() => 0.5 - Math.random());
+
+        options.forEach((cat) => {
+          const btn = document.createElement("button");
+          btn.textContent = cat;
+          btn.onclick = () => checkAnswer(cat);
+          buttonsContainer.appendChild(btn);
+        });
+      }
+
+      function checkAnswer(selected) {
+        if (!currentItem) return;
+        currentItem.element.textContent = currentItem.answer;
+
+        if (selected === currentItem.category) {
+          score += 10;
+          scoreEl.textContent = `Score: ${score}`;
+          currentItem.element.style.background = "green";
+          setTimeout(() => {
+            removeCurrentItem();
+            if (itemsSpawned >= level * 5 && wordQueue.length === 0) {
+              nextLevel();
+            }
+          }, 300);
+        } else {
+          currentItem.element.style.background = "red";
+          setTimeout(() => loseLife(), 300);
+        }
+      }
+
+      function removeCurrentItem() {
+        canvas.removeChild(currentItem.element);
+        currentItem = null;
+        if (wordQueue.length) createFallingItem(wordQueue.shift());
+      }
+
+      function gameLoop() {
+        if (currentItem) {
+          currentItem.y += fallingSpeed;
+          currentItem.element.style.top = currentItem.y + "px";
+          if (currentItem.y > 480) loseLife();
+        }
+      }
+
+      function loseLife() {
+        if (currentItem) canvas.removeChild(currentItem.element);
+        currentItem = null;
+        lives--;
+        livesEl.textContent = `Lives: ❤️ x ${lives}`;
+        if (lives <= 0) endGame();
+        else if (wordQueue.length) createFallingItem(wordQueue.shift());
+      }
+
+      function nextLevel() {
+        if (level >= maxLevel) return endGame(true);
+        level++;
+        levelEl.textContent = `Level: ${level}`;
+        fallingSpeed += 0.5;
+        spawnRate = Math.max(1000, spawnRate - 300);
+        itemsSpawned = 0;
+        wordQueue = [];
+        currentItem = null;
+        canvas.innerHTML = "";
+        spawnWord();
+      }
+
+      function endGame(win = false) {
+        clearInterval(intervalId);
+        clearTimeout(spawnTimeoutId);
+
+        let summaryHtml = '<ul style="text-align:left">';
+        const summaryMap = {};
+        learnedConcepts.forEach(([word, cat]) => {
+          if (!summaryMap[cat]) summaryMap[cat] = [];
+          if (!summaryMap[cat].includes(word)) summaryMap[cat].push(word);
+        });
+        for (const cat in summaryMap) {
+          summaryHtml += `<li><b>${cat}</b><ul>`;
+          summaryMap[cat].forEach((word) => {
+            summaryHtml += `<li>${word}</li>`;
+          });
+          summaryHtml += "</ul></li>";
+        }
+        summaryHtml += "</ul>";
+
+        canvas.innerHTML = win
+          ? `<h1 style="text-align:center;padding-top:20px;font-size:32px;color:green;">🎉 YOU WIN! 🎉</h1>`
+          : `<h1 style="text-align:center;padding-top:20px;font-size:32px;color:red;">Game Over</h1>`;
+
+        canvas.innerHTML += `<h2 style="text-align:center">📘 What You Learned:</h2>` + summaryHtml;
+
+        // Try Again Button inside summary
+        canvas.innerHTML += `<div style="text-align:center; margin-top: 20px;">
+          <button onclick="resetGame()" style="
+            background-color: #4caf50;
+            color: white;
+            font-size: 16px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+          ">Try Again</button>
+        </div>`;
+      }
+
+      function resetGame() {
+        canvas.innerHTML = "";
+        score = 0;
+        level = 1;
+        lives = 5;
+        fallingSpeed = 1.5;
+        spawnRate = 3000;
+        itemsSpawned = 0;
+        wordQueue = [];
+        currentItem = null;
+        learnedConcepts = [];
+        scoreEl.textContent = "Score: 0";
+        levelEl.textContent = "Level: 1";
+        livesEl.textContent = "Lives: ❤️ x 5";
+        startGame();
+      }
+
+      startGame();
+    </script>
+  </body>
+</html>
