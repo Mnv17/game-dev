@@ -1,3 +1,3 @@
 # game-dev
 
--deployed-link("https://silver-heliotrope-3770e6.netlify.app/")
+-deployed-link("https://bright-squirrel-3da83f.netlify.app/")
